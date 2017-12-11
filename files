@@ -1,0 +1,53 @@
+#include "buffer.h"
+#include <pthread.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
+#include <semaphore.h>
+
+/* the buffer */
+static buffer_item buffer[BUFFER_SIZE];
+
+static sem_t full;
+static sem_t empty;
+/* Mutal exclusion for shared buffer */
+static pthread_mutex_t mutex;
+
+static int front, back;
+
+void usage();
+
+int insert_item(buffer_item item);
+
+int remove_item(buffer_item* item);
+
+void *producer(void *param);
+
+void *consumer(void *param);
+
+
+
+int main(int argc, char* argv[]) {
+    /* 1. Get command line arguments */
+    if(argc != 4) {
+        usage(argv[0]);
+        return 0;
+    }
+    int exit_timeout = atoi(argv[1]);
+    int producer_threads = atoi(argv[2]);
+    int consumer_threads = atoi(argv[3]);
+    /* Validate command line arguments */
+    if(exit_timeout <= 0 || producer_threads <= 0 || consumer_threads <= 0) {
+        usage(argv[0]);
+        return 0;
+    }
+
+    int i, result;
+
+    pthread_attr_t thread_attr; 
+    pthread_attr_init(&thread_attr); 
+    pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED); 
+    pthread_t thread;
